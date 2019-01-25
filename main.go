@@ -1,12 +1,15 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"os/signal"
 	"reflect"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -337,6 +340,32 @@ func (ep *EventPublisher) Stop() {
 	close(ep.stop)
 }
 
+
+func readConfig() {
+	file, err := os.Open("config")
+	if err != nil {
+	    log.Fatal(err)
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		processCommands(scanner.Text())
+	    fmt.Println(scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+	    log.Fatal(err)
+	}
+}
+
+// commands are expected in the format Period Command [Concurrency]
+func processCommands(line string) {
+	fmt.Printf("%q\n", strings.Split(line, " "))
+}
+
+func makeAgenda() {}
+
 var exampleAgenda = Agenda {
 	Entries: []AgendaEntry{
 		AgendaEntry { Period:  2 * time.Second, Command: RequestedCommand { Cmd: []string{"ls"} }, ConcurrencyBudget: 1 },
@@ -360,6 +389,8 @@ func main() {
 	var workerPool = WorkerPool {DesiredCount: 5, In: dispatchedCommands, Out: rawResults}
 	var resultsAggregator = ResultsAggregator { In: rawResults, Out: feedback }
 	var eventPublisher = EventPublisher {In: eventChannel}
+
+	readConfig()
 
 	wg.Add(1)
 	go func() {
@@ -421,17 +452,3 @@ func main() {
 		}
 	}
 }
-
-// TASKS
-//   x Determine success/failure via exit code
-//   x Build results aggregator
-//   x Define concurrency limit in Agenda Entries
-//   x Handle feedback and budgets in dispatcher
-//   x Define "event" (or "state transition") listener. (All of these events will be forwarded to datadog)
-//   - Move each actor to a separate file
-//   - Move all message datatype declarations to a separate file
-
-// Post Prototype Tasks
-//   - Define an actual datatype for "ids" and ensure that they are unique
-//   - Allow external configuration of agenda
-//   - Sigusr to increase/decrease verbosity of events to datadog
