@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"reflect"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -339,6 +340,7 @@ func (ep *EventPublisher) Stop() {
 	close(ep.stop)
 }
 
+
 func readConfig() {
 	file, err := os.Open("config")
 	if err != nil {
@@ -348,6 +350,7 @@ func readConfig() {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
+		processCommands(scanner.Text())
 	    fmt.Println(scanner.Text())
 	}
 
@@ -355,6 +358,13 @@ func readConfig() {
 	    log.Fatal(err)
 	}
 }
+
+// commands are expected in the format Period Command [Concurrency]
+func processCommands(line string) {
+	fmt.Printf("%q\n", strings.Split(line, " "))
+}
+
+func makeAgenda() {}
 
 var exampleAgenda = Agenda {
 	Entries: []AgendaEntry{
